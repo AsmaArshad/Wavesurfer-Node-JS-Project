@@ -1,0 +1,172 @@
+{{>header}}
+
+<body>
+    <div class="container py-3">
+        <div class="card">
+            <div class="row">
+                <div class="card-block">
+                    <div class="text-center">
+                        <h5>Drop file to upload</h5>
+                        <hr>
+
+                        {{#if error}}
+                        <div class="alert alert-danger mt-2" role="alert">
+                            {{error}}
+                        </div>
+                        {{/if}}
+                    </div>
+
+                    <form method="post" enctype="multipart/form-data">
+                        <div class="row">
+                            <div class="col-md-8 offset-md-2 text-center">
+                                <div class="fileUpload">
+                                    <i class="bi-cloud-arrow-up-fill upload-icon"></i>
+                                    <input type="file" name="uploadFile" class="upload-input" accept="audio/*"
+                                        required />
+                                </div>
+                            </div>
+
+                            <div class="d-flex justify-content-center">
+                                <input type="submit" class="btn-upload mt-3" value="Upload File"
+                                    onclick="showProgress()">
+                            </div>
+                        </div>
+                    </form>
+
+                    <div id="ProgressDiv" style="height: 170px !important; display:none ">
+                        <h6 class="lblprogress mt-5">File is uploading.</h6>
+                        <img src="./assests/images/loader.gif"
+                            class="loader img-responsive center-block d-block mx-auto">
+                    </div>
+
+                    {{#if FilePath}}
+                    <div id="success-msg">
+                        <h6 class="lblprogress mt-3">{{msg}}</h6>
+                    </div>
+                    {{/if}}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {{#if FilePath}}
+    <div class="container py-3 mb-3 audio-card">
+        <div class="text-center">
+            <h5>View Audio Wave Effect</h5>
+            <hr class="mb-5">
+        </div>
+
+        <div class="AudioTime">
+           
+            <span id="currentTime">0:00</span>/
+            <span id="audioDuration">0:00</span>
+        </div>
+        
+        <h6 class="text-center filename">{{FileName}}</h6>
+       
+        <div id="waveform" class="waveform"></div>
+        <div class="control-bar text-center mb-5">
+            <span class="btn btn-lg btn-danger bi-play-circle" id="playBtn"> Play</span>
+            <span class="btn btn-lg btn-success bi-stop-circle" id="stopBtn"> Stop</span>
+            <span class="btn btn-lg btn-warning bi-volume-mute-fill" id="volumeBtn"> Mute</span>
+        </div>
+    </div>
+    {{/if}}
+
+
+    <script>
+        const pauseIconClassName = 'bi-pause-circle'
+        const playIconClassName = 'bi-play-circle'
+        playBtn = document.getElementById("playBtn");
+        stopBtn = document.getElementById("stopBtn");
+        volumeBtn = document.getElementById("volumeBtn");
+
+        playBtn.onclick = (event) => {
+            // get the button element from the event
+            const playBtnElement = event.currentTarget
+            wavesurfer.playPause();
+            // if a play button, remove the play button class and add pause button class
+            if (playBtn.innerText == " Play" || playBtn.innerText == " Resume") {
+                playBtn.innerText = " Pause"
+                playBtnElement.classList.remove(playIconClassName)
+                playBtnElement.classList.add(pauseIconClassName)
+                // if a pause button, remove pause button class and add play button class
+            } else {
+                playBtn.innerText = " Resume"
+                playBtnElement.classList.remove(pauseIconClassName)
+                playBtnElement.classList.add(playIconClassName)
+            }
+        }
+
+          function showProgress(){
+            //check if file is selected then show progress
+            if ($('upload-input')[0].files.length > 0) {
+                document.getElementById('ProgressDiv').style.display = "block";
+            }
+        }
+
+        setTimeout(() => {
+            const successMessage = document.getElementById('success-msg');
+            successMessage.style.display = 'none';
+        }, 1000);
+
+        audioDuration = document.querySelector("#audioDuration");
+        currentTime = document.querySelector("#currentTime");
+
+        var CalculateAudioTime = (time) => {
+            return [
+                Math.floor((time % 3600) / 60), // minutes
+                ('00' + Math.floor(time % 60)).slice(-2) // seconds
+            ].join(':');
+        };
+
+        var wavesurfer = WaveSurfer.create({
+            container: '#waveform',
+            waveColor: '#baf6ed',
+            progressColor: '#63ebd7',
+            barWidth: 3,
+            responsive: true,
+            hideScrollbar: true,
+            barRadius: 3
+        });
+
+        wavesurfer.load("{{FilePath}}");
+
+        stopBtn.onclick = (event) => {
+            wavesurfer.stop();
+            playBtn.innerText = " Play";
+            playBtn.classList.add(playIconClassName);
+        }
+
+        volumeBtn.onclick = (event) => {
+            if (playBtn.innerText == " Pause") {
+                wavesurfer.toggleMute();
+                var muteIcon = 'bi-volume-mute-fill';
+                var unmuteIcon = 'bi-volume-up-fill';
+                const volumeBtnElement = event.currentTarget
+                if (volumeBtn.innerText == " Mute") {
+                    volumeBtn.innerText = " UnMute"
+                    volumeBtnElement.classList.remove(muteIcon)
+                    volumeBtnElement.classList.add(unmuteIcon)
+                } else {
+                    volumeBtn.innerText = " Mute"
+                    volumeBtnElement.classList.remove(unmuteIcon)
+                    volumeBtnElement.classList.add(muteIcon)
+                }
+            }
+        }
+
+        //load audio duration on load
+        wavesurfer.on("ready", (e) => {
+            audioDuration.textContent = CalculateAudioTime(wavesurfer.getDuration())
+            //getDuration method returns audio clip duration in seconds.
+        });
+
+        //get Updated Current time on Play
+        wavesurfer.on("audioprocess", (e) => {
+            currentTime.textContent = CalculateAudioTime(wavesurfer.getCurrentTime())
+        });
+    </script>
+</body>
+
+</html>
